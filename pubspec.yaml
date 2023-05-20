@@ -1,0 +1,17 @@
+name: serial_csv
+description: High performance CSV encoder and decoder with persisted type-safety and null-safety.
+version: 0.1.0
+repository: https://github.com/Tienisto/serial_csv
+topics:
+  - csv
+  - serialization
+  - deserialization
+  - encode
+  - decode
+
+environment:
+  sdk: '>=2.19.6 <4.0.0'
+
+dev_dependencies:
+  lints: ^2.0.0
+  test: ^1.21.0
