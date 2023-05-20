@@ -37,5 +37,13 @@ void main() {
         ['a', 'b', 'c\nd'],
       ]);
     });
+
+    test('Should decode surrogate pairs', () {
+      final result = SerialCsv.decode('"a","b","c𠀀d"\n');
+
+      expect(result, [
+        ['a', 'b', 'c𠀀d'],
+      ]);
+    });
   });
 }

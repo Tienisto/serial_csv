@@ -5,7 +5,7 @@ class SerialCsv {
   SerialCsv._();
 
   /// Decodes a csv string into a list of rows.
-  static List<List<Object?>> decode(String csv) {
+  static List<List<dynamic>> decode(String csv) {
     return const SerialCsvDecoder().decode(csv);
   }
 

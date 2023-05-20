@@ -6,7 +6,7 @@ class SerialCsvDecoder {
   const SerialCsvDecoder();
 
   /// Decodes a CSV string into a list of rows.
-  List<List<Object?>> decode(String data) {
+  List<List<dynamic>> decode(String data) {
     List<List<Object?>> parsedData = [];
 
     List<Object?> currentRow = [];
