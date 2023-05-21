@@ -12,7 +12,7 @@ The following data types are supported and retained: `String`, `int`, `double`, 
 
 ## Benchmark
 
-![benchmark](assets/benchmark.png)
+![benchmark](https://raw.githubusercontent.com/Tienisto/serial_csv/main/assets/benchmark.png)
 
 You can run the benchmark yourself with this [code example](https://github.com/Tienisto/serial_csv/blob/main/example/benchmark.dart).
 

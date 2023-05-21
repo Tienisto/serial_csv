@@ -1,6 +1,6 @@
 name: serial_csv
 description: High performance CSV encoder and decoder with retained types and nullability.
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/Tienisto/serial_csv
 topics:
   - csv
