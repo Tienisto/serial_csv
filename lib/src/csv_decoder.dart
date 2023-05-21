@@ -1,30 +1,31 @@
-const _csvLineBreak = 10; // \n
-const _csvQuote = 34; // "
-const _csvComma = 44; // ,
-const _codeUnitT = 116; // t
-const _codeUnitF = 102; // f
+const _asciiLineBreak = 10; // \n
+const _asciiQuote = 34; // "
+const _asciiComma = 44; // ,
+const _asciiT = 116; // t
+const _asciiF = 102; // f
 
 class SerialCsvDecoder {
   const SerialCsvDecoder();
 
   /// Decodes a CSV string into a list of rows.
   List<List<dynamic>> decode(String data) {
+    final bytes = data.codeUnits;
     final List<List<Object?>> parsedData = [];
 
     List<Object?> currentRow = [];
     bool inQuotes = false;
     bool hadQuotes = false;
-    final buffer = StringBuffer();
+    List<int> currentCell = [];
 
-    for (int i = 0; i < data.length; i++) {
-      int c = data.codeUnitAt(i);
+    for (int i = 0; i < bytes.length; i++) {
+      int c = bytes[i];
 
       switch (c) {
-        case _csvQuote:
+        case _asciiQuote:
           if (inQuotes) {
-            if (i < data.length - 1 && data.codeUnitAt(i + 1) == _csvQuote) {
+            if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
               // Escaped quote
-              buffer.write('"');
+              currentCell.add(_asciiQuote);
               i++; // skip the second quote
             } else {
               // End of quoted field
@@ -36,17 +37,19 @@ class SerialCsvDecoder {
             inQuotes = true;
           }
           break;
-        case _csvComma:
-        case _csvLineBreak:
+        case _asciiComma:
+        case _asciiLineBreak:
           // end of cell or row
           if (inQuotes) {
-            buffer.writeCharCode(c);
+            currentCell.add(c);
           } else {
-            currentRow.add(_decodeCell(buffer.toString(), hadQuotes));
-            buffer.clear();
+            currentRow.add(
+              _decodeCell(String.fromCharCodes(currentCell), hadQuotes),
+            );
+            currentCell = [];
             hadQuotes = false;
 
-            if (c == _csvLineBreak) {
+            if (c == _asciiLineBreak) {
               // End of the row
               parsedData.add(currentRow);
               currentRow = [];
@@ -54,7 +57,7 @@ class SerialCsvDecoder {
           }
           break;
         default:
-          buffer.writeCharCode(c);
+          currentCell.add(c);
       }
     }
 
@@ -64,14 +67,14 @@ class SerialCsvDecoder {
   Object? _decodeCell(String raw, bool hadQuotes) {
     if (hadQuotes) {
       // a string
-      return raw.replaceAll('""', '"');
+      return raw;
     } else if (raw.isEmpty) {
       // a null value
       return null;
-    } else if (raw.codeUnitAt(0) == _codeUnitT) {
+    } else if (raw.codeUnitAt(0) == _asciiT) {
       // a 'true' boolean
       return true;
-    } else if (raw.codeUnitAt(0) == _codeUnitF) {
+    } else if (raw.codeUnitAt(0) == _asciiF) {
       // a 'false' boolean
       return false;
     } else if (raw.contains('.')) {
@@ -95,9 +98,9 @@ class SerialCsvDecoder {
       int c = data.codeUnitAt(i);
 
       switch (c) {
-        case _csvQuote:
+        case _asciiQuote:
           if (inQuotes) {
-            if (i < data.length - 1 && data.codeUnitAt(i + 1) == _csvQuote) {
+            if (i < data.length - 1 && data.codeUnitAt(i + 1) == _asciiQuote) {
               // Escaped quote
               buffer.write('"');
               i++; // skip the second quote
@@ -110,8 +113,8 @@ class SerialCsvDecoder {
             inQuotes = true;
           }
           break;
-        case _csvComma:
-        case _csvLineBreak:
+        case _asciiComma:
+        case _asciiLineBreak:
           // end of cell or row
           if (inQuotes) {
             buffer.writeCharCode(c);
@@ -119,7 +122,7 @@ class SerialCsvDecoder {
             currentRow.add(buffer.toString());
             buffer.clear();
 
-            if (c == _csvLineBreak) {
+            if (c == _asciiLineBreak) {
               // End of the row
               parsedData.add(currentRow);
               currentRow = [];
