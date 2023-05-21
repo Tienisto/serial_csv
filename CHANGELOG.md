@@ -1,6 +1,7 @@
 ## 0.2.0
 
-- `decode` now returns `List<List<dynamic>>` instead of `List<List<Object?>>`
+- method signature changed from `List<List<Object?>>` to `List<List<dynamic>>`
+- add `encodeStringList` and `decodeStringList` methods
 
 ## 0.1.0
 
