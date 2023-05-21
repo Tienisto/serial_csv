@@ -14,6 +14,19 @@ void main() {
       ]);
     });
 
+    test('Should decode with nulls', () {
+      final result = SerialCsv.decode('''"a",,"null"
+1,"null",
+,,
+''');
+
+      expect(result, [
+        ['a', null, 'null'],
+        [1, 'null', null],
+        [null, null, null],
+      ]);
+    });
+
     test('Should decode with quotes', () {
       final result = SerialCsv.decode('"a","b","""c"""a\n');
 
