@@ -12,6 +12,10 @@ The following data types are supported and retained: `String`, `int`, `double`, 
 
 ## Benchmark
 
+The benchmark was run with 2 million rows (1000 rows x 2000 iterations) on an i7-10750H.
+
+For comparison, the famous [csv](https://pub.dev/packages/csv) package was used.
+
 ![benchmark](https://raw.githubusercontent.com/Tienisto/serial_csv/main/assets/benchmark.png)
 
 You can run the benchmark yourself with this [code example](https://github.com/Tienisto/serial_csv/blob/main/example/benchmark.dart).
