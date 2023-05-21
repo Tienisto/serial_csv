@@ -80,9 +80,10 @@ void main() {
         'b': 2,
         'c': true,
         'd': null,
+        'e': 'hello"world',
       });
 
-      expect(result, '"a","1"\n"b",2\n"c",true\n"d",\n');
+      expect(result, '"a","1"\n"b",2\n"c",true\n"d",\n"e","hello""world"\n');
     });
   });
 }

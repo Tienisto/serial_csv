@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:csv/csv.dart';
 import 'package:csvwriter/csvwriter.dart';
 import 'package:serial_csv/serial_csv.dart';
@@ -34,6 +36,13 @@ void benchmarkParseTyped() {
     name: 'CsvToListConverter.convert',
     iterations: iterations,
     func: () => const CsvToListConverter(eol: '\n').convert(input),
+  );
+
+  final encodedJson = jsonEncode(input);
+  _benchmark(
+    name: 'jsonDecode',
+    iterations: iterations,
+    func: () => jsonEncode(encodedJson),
   );
 }
 
@@ -74,8 +83,15 @@ void benchmarkParseStrings() {
 }
 
 void benchmarkParseMap() {
-  const segment = '"awt4Gw5hbwggTVBD4WWAVdds15","5hweh?!"\n"eee;;;www2",5345223\n"wss",true\n"aegh98""3jri3",\n';
-  final input = List<String>.generate(1000, (index) => segment).join('');
+  final map = Map<String, dynamic>.fromEntries(List.generate(1000, (index) {
+    return MapEntry('k$index.hashCode'.hashCode.toRadixString(16), index % 2 == 0 ? index.hashCode.toRadixString(16) : index.hashCode);
+  }));
+  map['awt4Gw5hbwggTVBD4WWAVdds15'] = '5hweh?!';
+  map['eee;;;www2'] = 5345223;
+  map['wss'] = true;
+  map['aegh98""3jri3'] = null;
+
+  final input = SerialCsv.encodeMap(map);
   const iterations = 2000;
 
   _benchmark(
@@ -119,6 +135,13 @@ void benchmarkParseMap() {
     iterations: iterations,
     func: () => const CsvToListConverter(eol: '\n').convert(input),
   );
+
+  final encodedJson = jsonEncode(map);
+  _benchmark(
+    name: 'jsonDecode',
+    iterations: iterations,
+    func: () => jsonDecode(encodedJson),
+  );
 }
 
 void benchmarkEncode() {
@@ -156,6 +179,12 @@ void benchmarkEncode() {
     iterations: iterations,
     func: () => const ListToCsvConverter().convert(input),
   );
+
+  _benchmark(
+    name: 'jsonEncode',
+    iterations: iterations,
+    func: () => jsonEncode(input),
+  );
 }
 
 void benchmarkEncodeStrings() {
@@ -192,6 +221,36 @@ void benchmarkEncodeStrings() {
     name: 'ListToCsvConverter.convert',
     iterations: iterations,
     func: () => const ListToCsvConverter().convert(input),
+  );
+}
+
+void benchmarkEncodeMap() {
+  final map = Map<String, dynamic>.fromEntries(List.generate(2000, (index) {
+    return MapEntry('k$index.hashCode'.hashCode.toRadixString(16), index % 2 == 0 ? index.hashCode.toRadixString(16) : index.hashCode);
+  }));
+  map['awt4Gw5hbwggTVBD4WWAVdds15'] = '5hweh?!';
+  map['eee;;;www2'] = 5345223;
+  map['wss'] = true;
+  map['aegh98""3jri3'] = null;
+
+  const iterations = 3000;
+
+  _benchmark(
+    name: 'heat-up',
+    iterations: iterations,
+    func: () => SerialCsv.encodeMap(map),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.encodeMap',
+    iterations: iterations,
+    func: () => SerialCsv.encodeMap(map),
+  );
+
+  _benchmark(
+    name: 'jsonEncode',
+    iterations: iterations,
+    func: () => jsonEncode(map),
   );
 }
 
