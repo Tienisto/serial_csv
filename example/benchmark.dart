@@ -236,9 +236,15 @@ void benchmarkEncodeMap() {
   const iterations = 3000;
 
   _benchmark(
-    name: 'heat-up',
+    name: 'heat-up (1/2)',
     iterations: iterations,
     func: () => SerialCsv.encodeMap(map),
+  );
+
+  _benchmark(
+    name: 'heat-up (2/2)',
+    iterations: iterations,
+    func: () => jsonEncode(map),
   );
 
   _benchmark(
