@@ -72,4 +72,17 @@ void main() {
       expect(result, '"a","b","c\nd"\n');
     });
   });
+
+  group('SerialCsv.encodeMap', () {
+    test('Should encode normally', () {
+      final result = SerialCsv.encodeMap({
+        'a': '1',
+        'b': 2,
+        'c': true,
+        'd': null,
+      });
+
+      expect(result, '"a","1"\n"b",2\n"c",true\n"d",\n');
+    });
+  });
 }

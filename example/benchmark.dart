@@ -73,6 +73,54 @@ void benchmarkParseStrings() {
   );
 }
 
+void benchmarkParseMap() {
+  const segment = '"awt4Gw5hbwggTVBD4WWAVdds15","5hweh?!"\n"eee;;;www2",5345223\n"wss",true\n"aegh98""3jri3",\n';
+  final input = List<String>.generate(1000, (index) => segment).join('');
+  const iterations = 2000;
+
+  _benchmark(
+    name: 'heat-up',
+    iterations: iterations,
+    func: () => fast_csv.parse(input),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decode',
+    iterations: iterations,
+    func: () => SerialCsv.decode(input),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decodeMap',
+    iterations: iterations,
+    func: () => SerialCsv.decodeMap(input),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decodeMap selfmade',
+    iterations: iterations,
+    func: () {
+      final result = SerialCsv.decode(input);
+      return {
+        for (var i = 0; i < result.length; i++)
+          i: result[i],
+      };
+    },
+  );
+
+  _benchmark(
+    name: 'fast_csv',
+    iterations: iterations,
+    func: () => fast_csv.parse(input),
+  );
+
+  _benchmark(
+    name: 'CsvToListConverter.convert',
+    iterations: iterations,
+    func: () => const CsvToListConverter(eol: '\n').convert(input),
+  );
+}
+
 void benchmarkEncode() {
   const iterations = 2000;
   const row = ['rtdh56e6ew253', 'b32r21!424', 'cerges!!"r', 234, true];

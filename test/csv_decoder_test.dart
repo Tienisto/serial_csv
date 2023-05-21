@@ -106,4 +106,74 @@ void main() {
       ]);
     });
   });
+
+  group('SerialCsvDecoder.decodeMap', () {
+    test('Should decode a simple map', () {
+      final result = SerialCsv.decodeMap('"a","aa"\n');
+
+      expect(result, {
+        'a': 'aa',
+      });
+    });
+
+    test('Should decode normally', () {
+      final result = SerialCsv.decodeMap('''"a","aa"
+"b",2
+"c",3.4
+"d",true
+"e",
+''');
+
+      expect(result, {
+        'a': 'aa',
+        'b': 2,
+        'c': 3.4,
+        'd': true,
+        'e': null,
+      });
+      expect(result['b'], isA<int>());
+      expect(result['c'], isA<double>());
+    });
+
+    test('Should decode mupltiple entries', () {
+      final result = SerialCsv.decodeMap('"a","11"\n"b","22"\n');
+
+      expect(result, {
+        'a': '11',
+        'b': '22',
+      });
+    });
+
+    test('Should decode with quotes', () {
+      final result = SerialCsv.decodeMap('"a","""b"""\n');
+
+      expect(result, {
+        'a': '"b"',
+      });
+    });
+
+    test('Should decode with commas', () {
+      final result = SerialCsv.decodeMap('"a","b,c"\n');
+
+      expect(result, {
+        'a': 'b,c',
+      });
+    });
+
+    test('Should decode with newlines', () {
+      final result = SerialCsv.decodeMap('"a","b\nc"\n');
+
+      expect(result, {
+        'a': 'b\nc',
+      });
+    });
+
+    test('Should decode surrogate pairs', () {
+      final result = SerialCsv.decodeMap('"a","b𠀀c"\n');
+
+      expect(result, {
+        'a': 'b𠀀c',
+      });
+    });
+  });
 }

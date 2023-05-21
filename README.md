@@ -91,3 +91,37 @@ Example:
 const csv = '"a","b","c"\n1,2.3,"3"\n4,,true\n';
 List<List<dynamic>> decoded = SerialCsv.decode(csv);
 ```
+
+### Specialization
+
+There a specialized methods with optimized performance:
+
+**Strings only**
+
+Encode and decode a list of rows with only string cells. No `null` is allowed.
+
+```dart
+const rows = [
+  ['a', 'b', 'c'],
+  ['1', '2', '3'],
+  ['4', '5', 'true'],
+];
+String encoded = SerialCsv.encodeStringList(rows);
+List<List<String>> decoded = SerialCsv.decodeStringList(encoded);
+```
+
+**Key-Value**
+
+Encode and decode a non-nested map. Keys must be strings. Values can be any supported type.
+
+```dart
+const map = {
+  'a': '1',
+  'b': 2,
+  'c': true,
+  'd': null,
+};
+
+String encoded = SerialCsv.encodeMap(map);
+Map<String, dynamic> decoded = SerialCsv.decodeMap(encoded);
+```

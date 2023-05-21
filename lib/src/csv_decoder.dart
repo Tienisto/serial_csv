@@ -34,7 +34,7 @@ class SerialCsvDecoder {
     List<Object?> currentRow = [];
     _DataType currentType = _DataType.nullValue; // expect null if empty
     bool boolValue = false;
-    bool finishedString = false;
+    bool inString = false;
     List<int> currentCell = [];
 
     for (int i = 0; i < bytes.length; i++) {
@@ -42,7 +42,7 @@ class SerialCsvDecoder {
 
       switch (c) {
         case _asciiQuote:
-          if (currentType == _DataType.string) {
+          if (inString) {
             if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
               // Escaped quote
               currentCell.add(_asciiQuote);
@@ -50,16 +50,17 @@ class SerialCsvDecoder {
             } else {
               // we are done with the string
               // expecting a comma or line break next
-              finishedString = true;
+              inString = false;
             }
           } else {
             // detect as string
             currentType = _DataType.string;
+            inString = true;
           }
           break;
         case _asciiComma:
         case _asciiLineBreak:
-          if (currentType == _DataType.string && !finishedString) {
+          if (inString) {
             // we are still in the string
             currentCell.add(c);
           } else {
@@ -84,7 +85,7 @@ class SerialCsvDecoder {
 
             // reset cell
             currentCell = [];
-            finishedString = false;
+            inString = false;
             currentType = _DataType.nullValue;
 
             if (c == _asciiLineBreak) {
@@ -202,6 +203,172 @@ class SerialCsvDecoder {
           break;
         default:
           currentCell.add(c);
+      }
+    }
+
+    return parsedData;
+  }
+
+  /// Decodes a CSV consisting of key-value pairs into a map.
+  Map<String, dynamic> decodeMap(String data) {
+    final bytes = data.codeUnits;
+    final Map<String, dynamic> parsedData = {};
+
+    bool firstColumn = true;
+    List<int> currentCell = [];
+    bool inString = false;
+
+    // variables for first column
+    String currentKey = '';
+
+    // variables for second column
+    dynamic currVal;
+    _DataType currentType = _DataType.nullValue; // expect null if empty
+    bool boolValue = false;
+
+    for (int i = 0; i < bytes.length; i++) {
+      int c = bytes[i];
+
+      if (firstColumn) {
+        switch (c) {
+          case _asciiQuote:
+            if (inString) {
+              if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
+                // Escaped quote
+                currentCell.add(_asciiQuote);
+                i++; // skip the second quote
+              } else {
+                // we are done with the string
+                // expecting a comma or line break next
+                inString = false;
+              }
+            } else {
+              inString = true;
+            }
+            break;
+          case _asciiComma:
+            if (inString) {
+              // we are still in the string
+              currentCell.add(c);
+            } else {
+              // end of cell
+              currentKey = String.fromCharCodes(currentCell);
+              firstColumn = false;
+              currentCell = [];
+            }
+            break;
+          default:
+            currentCell.add(c);
+        }
+      } else {
+        switch (c) {
+          case _asciiQuote:
+            if (inString) {
+              if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
+                // Escaped quote
+                currentCell.add(_asciiQuote);
+                i++; // skip the second quote
+              } else {
+                // we are done with the string
+                // expecting a comma or line break next
+                inString = false;
+              }
+            } else {
+              // detect as string
+              currentType = _DataType.string;
+              inString = true;
+            }
+            break;
+          case _asciiComma:
+          case _asciiLineBreak:
+            if (inString) {
+              // we are still in the string
+              currentCell.add(c);
+            } else {
+              // end of cell or row
+              switch (currentType) {
+                case _DataType.string:
+                  currVal = String.fromCharCodes(currentCell);
+                  break;
+                case _DataType.integer:
+                  currVal = int.parse(String.fromCharCodes(currentCell));
+                  break;
+                case _DataType.double:
+                  currVal = double.parse(String.fromCharCodes(currentCell));
+                  break;
+                case _DataType.boolean:
+                  currVal = boolValue;
+                  break;
+                case _DataType.nullValue:
+                  currVal = null;
+                  break;
+              }
+
+              // reset cell
+              currentCell = [];
+              inString = false;
+              currentType = _DataType.nullValue;
+
+              if (c == _asciiLineBreak) {
+                // end of the row
+                parsedData[currentKey] = currVal;
+
+                // reset row
+                currVal = null;
+                firstColumn = true;
+              }
+            }
+            break;
+          default:
+            switch (currentType) {
+              case _DataType.string:
+                currentCell.add(c);
+                break;
+              case _DataType.integer:
+                currentCell.add(c);
+                if (c == _asciiDot) {
+                  // change to double
+                  currentType = _DataType.double;
+                }
+                break;
+              case _DataType.double:
+                currentCell.add(c);
+                break;
+              case _DataType.boolean:
+                // we already detected the boolean value on the first character
+                break;
+              case _DataType.nullValue:
+                // no type detected yet
+                // detect type on first character
+                switch (c) {
+                  case _asciiT:
+                  case _asciiF:
+                    currentType = _DataType.boolean;
+                    boolValue =
+                        c == _asciiT; // we are finished with the boolean
+                    break;
+                  case _ascii0:
+                  case _ascii1:
+                  case _ascii2:
+                  case _ascii3:
+                  case _ascii4:
+                  case _ascii5:
+                  case _ascii6:
+                  case _ascii7:
+                  case _ascii8:
+                  case _ascii9:
+                    // assume as integer first, we change to double if we see a dot
+                    currentType = _DataType.integer;
+                    currentCell.add(c);
+                    break;
+                  default:
+                    currentType = _DataType.string;
+                    currentCell.add(c);
+                    break;
+                }
+                break;
+            }
+        }
       }
     }
 
