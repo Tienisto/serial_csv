@@ -10,15 +10,17 @@ High performance CSV encoder and decoder with retained types and nullability.
 
 This package is intended to quickly encode and decode csv while keeping all type information.
 
-The strict nature allows for high performance during encoding and decoding.
+Its strict nature enhances performance during encoding and decoding.
 
-The following data types are supported and retained: `String`, `int`, `double`, `bool`, `null`.
+During this process, the following data types are preserved: `String`, `int`, `double`, `bool`, `null`.
 
 ## Benchmark
 
 The benchmark was run with 2 million rows (1000 rows x 2000 iterations) on an i7-10750H.
 
-For comparison, the famous [csv](https://pub.dev/packages/csv) package was used.
+For comparison, the packages [csv](https://pub.dev/packages/csv) (v5.0.2),
+[fast_csv](https://pub.dev/packages/fast_csv) (v0.1.44),
+and [csvwriter](https://pub.dev/packages/csvwriter) (v1.3.0) were used.
 
 ![benchmark](https://raw.githubusercontent.com/Tienisto/serial_csv/main/assets/benchmark.png)
 

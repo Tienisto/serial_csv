@@ -1,5 +1,7 @@
 import 'package:csv/csv.dart';
+import 'package:csvwriter/csvwriter.dart';
 import 'package:serial_csv/serial_csv.dart';
+import 'package:fast_csv/fast_csv.dart' as fast_csv;
 
 void main() {
   benchmarkParseStrings();
@@ -11,9 +13,21 @@ void benchmarkParseTyped() {
   const iterations = 2000;
 
   _benchmark(
+    name: 'heat-up',
+    iterations: iterations,
+    func: () => fast_csv.parse(input),
+  );
+
+  _benchmark(
     name: 'SerialCsv.decode',
     iterations: iterations,
     func: () => SerialCsv.decode(input),
+  );
+
+  _benchmark(
+    name: 'fast_csv',
+    iterations: iterations,
+    func: () => fast_csv.parse(input),
   );
 
   _benchmark(
@@ -29,6 +43,12 @@ void benchmarkParseStrings() {
   const iterations = 2000;
 
   _benchmark(
+    name: 'heat-up',
+    iterations: iterations,
+    func: () => fast_csv.parse(input),
+  );
+
+  _benchmark(
     name: 'SerialCsv.decode',
     iterations: iterations,
     func: () => SerialCsv.decode(input),
@@ -38,6 +58,12 @@ void benchmarkParseStrings() {
     name: 'SerialCsv.decodeStringList',
     iterations: iterations,
     func: () => SerialCsv.decodeStringList(input),
+  );
+
+  _benchmark(
+    name: 'fast_csv',
+    iterations: iterations,
+    func: () => fast_csv.parse(input),
   );
 
   _benchmark(
@@ -53,9 +79,28 @@ void benchmarkEncode() {
   final input = List.generate(1000, (_) => row);
 
   _benchmark(
+    name: 'heat-up',
+    iterations: iterations,
+    func: () => const ListToCsvConverter().convert(input),
+  );
+
+  _benchmark(
     name: 'SerialCsv.encode',
     iterations: iterations,
     func: () => SerialCsv.encode(input),
+  );
+
+  _benchmark(
+    name: 'csvwriter',
+    iterations: iterations,
+    func: () {
+      final buffer = StringBuffer();
+      final writer = CsvWriter(buffer, 5, endOfLine: '\n');
+      for (final row in input) {
+        writer.writeData(data: row);
+      }
+      return buffer.toString();
+    },
   );
 
   _benchmark(
@@ -71,9 +116,28 @@ void benchmarkEncodeStrings() {
   final input = List.generate(1000, (_) => row);
 
   _benchmark(
+    name: 'heat-up',
+    iterations: iterations,
+    func: () => const ListToCsvConverter().convert(input),
+  );
+
+  _benchmark(
     name: 'SerialCsv.encodeStringList',
     iterations: iterations,
     func: () => SerialCsv.encodeStringList(input),
+  );
+
+  _benchmark(
+    name: 'csvwriter',
+    iterations: iterations,
+    func: () {
+      final buffer = StringBuffer();
+      final writer = CsvWriter(buffer, 5, endOfLine: '\n');
+      for (final row in input) {
+        writer.writeData(data: row);
+      }
+      return buffer.toString();
+    },
   );
 
   _benchmark(
