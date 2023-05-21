@@ -1,5 +1,9 @@
 # serial_csv
 
+[![pub package](https://img.shields.io/pub/v/serial_csv.svg)](https://pub.dev/packages/serial_csv)
+![ci](https://github.com/Tienisto/serial_csv/actions/workflows/ci.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 High performance CSV encoder and decoder with retained types and nullability.
 
 ## Introduction
