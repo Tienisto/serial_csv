@@ -1,6 +1,7 @@
 ## 0.3.0
 
 - make dart constraints less strict (requires only dart 2.12+)
+- add `encodeMap` and `decodeMap` methods
 
 ## 0.2.1
 
