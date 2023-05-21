@@ -1,20 +1,23 @@
+final _buffer = StringBuffer();
+
 class SerialCsvEncoder {
   const SerialCsvEncoder();
 
   /// Encodes a list of rows into a csv string.
   String encode(List<List<dynamic>> csv) {
-    final buffer = StringBuffer();
     for (final row in csv) {
       for (int i = 0; i < row.length; i++) {
-        buffer.write(_encodeCell(row[i]));
+        _buffer.write(_encodeCell(row[i]));
 
         if (i != row.length - 1) {
-          buffer.write(',');
+          _buffer.write(',');
         }
       }
-      buffer.write('\n');
+      _buffer.write('\n');
     }
-    return buffer.toString();
+    final result = _buffer.toString();
+    _buffer.clear();
+    return result;
   }
 
   String _encodeCell(Object? cell) {
@@ -29,33 +32,35 @@ class SerialCsvEncoder {
 
   /// Encodes a list of rows into a csv string.
   String encodeStringList(List<List<String>> csv) {
-    final buffer = StringBuffer();
     for (final row in csv) {
       for (int i = 0; i < row.length; i++) {
-        buffer.write('"');
-        buffer.write(row[i].replaceAll('"', '""'));
+        _buffer.write('"');
+        _buffer.write(row[i].replaceAll('"', '""'));
 
         if (i != row.length - 1) {
-          buffer.write('",');
+          _buffer.write('",');
         } else {
-          buffer.write('"');
+          _buffer.write('"');
         }
       }
-      buffer.write('\n');
+      _buffer.write('\n');
     }
-    return buffer.toString();
+    final result = _buffer.toString();
+    _buffer.clear();
+    return result;
   }
 
   /// Encodes a map into a csv string.
   String encodeMap(Map<String, dynamic> map) {
-    final buffer = StringBuffer();
     for (final entry in map.entries) {
-      buffer.write('"');
-      buffer.write(entry.key.replaceAll('"', '""'));
-      buffer.write('",');
-      buffer.write(_encodeCell(entry.value));
-      buffer.write('\n');
+      _buffer.write('"');
+      _buffer.write(entry.key.replaceAll('"', '""'));
+      _buffer.write('",');
+      _buffer.write(_encodeCell(entry.value));
+      _buffer.write('\n');
     }
-    return buffer.toString();
+    final result = _buffer.toString();
+    _buffer.clear();
+    return result;
   }
 }
