@@ -214,161 +214,117 @@ class SerialCsvDecoder {
     final bytes = data.codeUnits;
     final Map<String, dynamic> parsedData = {};
 
-    bool firstColumn = true;
-    List<int> currentCell = [];
-    bool inString = false;
+    int cursor = 0;
 
-    // variables for first column
-    String currentKey = '';
+    row_loop:
+    while (cursor != bytes.length) {
+      // one iteration = one row
 
-    // variables for second column
-    dynamic currVal;
-    _DataType currentType = _DataType.nullValue; // expect null if empty
-    bool boolValue = false;
+      String currentKey = '';
 
-    for (int i = 0; i < bytes.length; i++) {
-      int c = bytes[i];
+      // parse first column
+      List<int> currentCell = [];
+      cursor++; // skip first quote
+      while (true) {
+        int char = bytes[cursor];
 
-      if (firstColumn) {
-        switch (c) {
-          case _asciiQuote:
-            if (inString) {
-              if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
-                // Escaped quote
-                currentCell.add(_asciiQuote);
-                i++; // skip the second quote
-              } else {
-                // we are done with the string
-                // expecting a comma or line break next
-                inString = false;
-              }
-            } else {
-              inString = true;
-            }
-            break;
-          case _asciiComma:
-            if (inString) {
-              // we are still in the string
-              currentCell.add(c);
-            } else {
-              // end of cell
-              currentKey = String.fromCharCodes(currentCell);
-              firstColumn = false;
-              currentCell = [];
-            }
-            break;
-          default:
-            currentCell.add(c);
+        if (char == _asciiQuote) {
+          if (cursor + 1 < bytes.length && bytes[cursor + 1] == _asciiQuote) {
+            currentCell.add(_asciiQuote);
+            cursor += 2; // skip next quote
+          } else {
+            currentKey = String.fromCharCodes(currentCell);
+            break; // found end quote
+          }
+        } else {
+          currentCell.add(char);
+          cursor++;
         }
-      } else {
-        switch (c) {
-          case _asciiQuote:
-            if (inString) {
-              if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
-                // Escaped quote
+      }
+
+      // skip end quote and comma
+      cursor += 2;
+
+      // detect type on first character
+      int initialChar = bytes[cursor];
+      switch (initialChar) {
+        case _asciiQuote:
+          // detected string
+          currentCell = [];
+          cursor++; // skip first quote
+          while (true) {
+            int char = bytes[cursor];
+
+            if (char == _asciiQuote) {
+              if (cursor + 1 < bytes.length && bytes[cursor + 1] == _asciiQuote) {
                 currentCell.add(_asciiQuote);
-                i++; // skip the second quote
+                cursor += 2; // skip next quote
               } else {
-                // we are done with the string
-                // expecting a comma or line break next
-                inString = false;
+                // found end quote
+                parsedData[currentKey] = String.fromCharCodes(currentCell);
+                cursor += 2; // skip next line break
+                continue row_loop;
               }
             } else {
-              // detect as string
-              currentType = _DataType.string;
-              inString = true;
+              currentCell.add(char);
+              cursor++;
             }
-            break;
-          case _asciiComma:
-          case _asciiLineBreak:
-            if (inString) {
-              // we are still in the string
-              currentCell.add(c);
-            } else {
-              // end of cell or row
-              switch (currentType) {
-                case _DataType.string:
-                  currVal = String.fromCharCodes(currentCell);
-                  break;
-                case _DataType.integer:
-                  currVal = int.parse(String.fromCharCodes(currentCell));
-                  break;
-                case _DataType.double:
-                  currVal = double.parse(String.fromCharCodes(currentCell));
-                  break;
-                case _DataType.boolean:
-                  currVal = boolValue;
-                  break;
-                case _DataType.nullValue:
-                  currVal = null;
-                  break;
-              }
+          }
+        case _asciiT:
+        case _asciiF:
+          // detected boolean
+          parsedData[currentKey] = initialChar == _asciiT;
 
-              // reset cell
-              currentCell = [];
-              inString = false;
-              currentType = _DataType.nullValue;
-
-              if (c == _asciiLineBreak) {
-                // end of the row
-                parsedData[currentKey] = currVal;
-
-                // reset row
-                currVal = null;
-                firstColumn = true;
-              }
+          // skip until linebreak
+          while (true) {
+            cursor++;
+            if (bytes[cursor] == _asciiLineBreak) {
+              cursor++;
+              continue row_loop;
             }
-            break;
-          default:
-            switch (currentType) {
-              case _DataType.string:
-                currentCell.add(c);
-                break;
-              case _DataType.integer:
-                currentCell.add(c);
-                if (c == _asciiDot) {
-                  // change to double
-                  currentType = _DataType.double;
-                }
-                break;
-              case _DataType.double:
-                currentCell.add(c);
-                break;
-              case _DataType.boolean:
-                // we already detected the boolean value on the first character
-                break;
-              case _DataType.nullValue:
-                // no type detected yet
-                // detect type on first character
-                switch (c) {
-                  case _asciiT:
-                  case _asciiF:
-                    currentType = _DataType.boolean;
-                    boolValue =
-                        c == _asciiT; // we are finished with the boolean
-                    break;
-                  case _ascii0:
-                  case _ascii1:
-                  case _ascii2:
-                  case _ascii3:
-                  case _ascii4:
-                  case _ascii5:
-                  case _ascii6:
-                  case _ascii7:
-                  case _ascii8:
-                  case _ascii9:
-                    // assume as integer first, we change to double if we see a dot
-                    currentType = _DataType.integer;
-                    currentCell.add(c);
-                    break;
-                  default:
-                    currentType = _DataType.string;
-                    currentCell.add(c);
-                    break;
-                }
-                break;
+          }
+        case _asciiLineBreak:
+          // detected null value
+          parsedData[currentKey] = null;
+          cursor++;
+          continue row_loop;
+        default:
+          // number expected
+          // assume as integer first, we change to double if we see a dot
+          currentCell = [];
+
+          integer_loop:
+          while (true) {
+            int char = bytes[cursor];
+
+            switch (char) {
+              case _asciiLineBreak:
+                parsedData[currentKey] = int.parse(String.fromCharCodes(currentCell));
+                cursor++;
+                continue row_loop;
+              case _asciiDot:
+                currentCell.add(char);
+                cursor++;
+                break integer_loop;
+              default:
+                cursor++;
+                currentCell.add(char);
             }
-        }
+          }
+
+          // double_loop
+          while (true) {
+            int char = bytes[cursor];
+
+            if (char == _asciiLineBreak) {
+              parsedData[currentKey] = double.parse(String.fromCharCodes(currentCell));
+              cursor++;
+              continue row_loop;
+            }
+
+            currentCell.add(char);
+            cursor++;
+          }
       }
     }
 
