@@ -1,14 +1,20 @@
 # serial_csv
 
-High performance CSV encoder and decoder with persisted type-safety and null-safety.
+High performance CSV encoder and decoder with retained types and nullability.
 
 ## Introduction
 
-This package is intended to quickly encode and decode csv in an opinionated and type-safe way.
+This package is intended to quickly encode and decode csv while keeping all type information.
 
-The strict nature allows for high performance encoding and decoding.
+The strict nature allows for high performance during encoding and decoding.
 
 The following data types are supported and retained: `String`, `int`, `double`, `bool`, `null`.
+
+## Benchmark
+
+![benchmark](assets/benchmark.png)
+
+You can run the benchmark yourself with this [code example](https://github.com/Tienisto/serial_csv/blob/main/example/benchmark.dart).
 
 ## CSV structure
 

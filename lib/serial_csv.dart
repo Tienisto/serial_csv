@@ -9,8 +9,18 @@ class SerialCsv {
     return const SerialCsvDecoder().decode(csv);
   }
 
+  /// A specialized version of decode that returns a list of rows of strings.
+  static List<List<String>> decodeStringList(String csv) {
+    return const SerialCsvDecoder().decodeStringList(csv);
+  }
+
   /// Encodes a list of rows into a csv string.
-  static String encode(List<List<Object?>> csv) {
+  static String encode(List<List<dynamic>> csv) {
     return const SerialCsvEncoder().encode(csv);
+  }
+
+  /// A specialized version of encode that encodes a list of rows of strings.
+  static String encodeStringList(List<List<String>> csv) {
+    return const SerialCsvEncoder().encodeStringList(csv);
   }
 }

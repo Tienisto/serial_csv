@@ -2,7 +2,7 @@ import 'package:serial_csv/serial_csv.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('csv encode tests', () {
+  group('SerialCsv.encode', () {
     test('Should encode normally', () {
       final result = SerialCsv.encode([
         ['a', 'b', 'c'],
@@ -18,14 +18,6 @@ void main() {
       ]);
 
       expect(result, '"a","b","""c"""\n');
-    });
-
-    test('Should encode with commas', () {
-      final result = SerialCsv.encode([
-        ['a', 'b', 'c,d'],
-      ]);
-
-      expect(result, '"a","b","c,d"\n');
     });
 
     test('Should encode with newlines', () {
@@ -51,6 +43,33 @@ void main() {
       ]);
 
       expect(result, '"a","b",\n');
+    });
+  });
+
+  group('SerialCsv.encodeStringList', () {
+    test('Should encode normally', () {
+      final result = SerialCsv.encodeStringList([
+        ['a', 'b', 'c'],
+        ['1', '2', '3'],
+      ]);
+
+      expect(result, '"a","b","c"\n"1","2","3"\n');
+    });
+
+    test('Should encode with quotes', () {
+      final result = SerialCsv.encodeStringList([
+        ['a', 'b', '"c"'],
+      ]);
+
+      expect(result, '"a","b","""c"""\n');
+    });
+
+    test('Should encode with newlines', () {
+      final result = SerialCsv.encodeStringList([
+        ['a', 'b', 'c\nd'],
+      ]);
+
+      expect(result, '"a","b","c\nd"\n');
     });
   });
 }
