@@ -26,16 +26,19 @@ You can run the benchmark yourself with this [code example](https://github.com/T
 
 ## CSV structure
 
+This library uses a more strict CSV format to achieve high performance.
+
 - string cells are always double-quoted
 - numeric and boolean cells are not double-quoted
 - null cells are encoded as empty strings
 - double-quotes within cells are escaped with another double-quote
 - cells are separated by commas
 - every row must be terminated with `\n` (LF)
+- no comments (`#`) are allowed
 
 ## Usage
 
-You can **decode** with any library but be careful to **encode** with other libraries as you might get an invalid format.
+While the encoded CSV is still valid CSV, do not modify it with other tools as you might break the strict format.
 
 So as long as you only use this library, you can be sure that the data types and their nullability are retained.
 
