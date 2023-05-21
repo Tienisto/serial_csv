@@ -52,11 +52,11 @@ class SerialCsvEncoder {
 
   /// Encodes a map into a csv string.
   String encodeMap(Map<String, dynamic> map) {
-    for (final entry in map.entries) {
+    for (final key in map.keys) {
       _buffer.write('"');
-      _buffer.write(entry.key.replaceAll('"', '""'));
+      _buffer.write(key.replaceAll('"', '""'));
       _buffer.write('",');
-      _buffer.write(_encodeCell(entry.value));
+      _buffer.write(_encodeCell(map[key]));
       _buffer.write('\n');
     }
     final result = _buffer.toString();
