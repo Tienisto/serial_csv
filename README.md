@@ -16,7 +16,7 @@ During this process, the following data types are preserved: `String`, `int`, `d
 
 ## Benchmark
 
-The benchmark consists of 2 million rows (1000 rows x 2000 iterations) on an i7-10750H.
+The benchmark consists of 2 million rows (1000 rows x 2000 iterations) running on an i7-10750H.
 
 For comparison, the packages [csv](https://pub.dev/packages/csv) (v5.0.2),
 [fast_csv](https://pub.dev/packages/fast_csv) (v0.1.44),
