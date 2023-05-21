@@ -94,7 +94,7 @@ List<List<dynamic>> decoded = SerialCsv.decode(csv);
 
 ### Specialization
 
-There a specialized methods with optimized performance:
+There are specialized methods with optimized performance:
 
 **Strings only**
 
