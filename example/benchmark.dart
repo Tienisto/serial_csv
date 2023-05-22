@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:csv/csv.dart';
 import 'package:csvwriter/csvwriter.dart';
@@ -6,139 +7,292 @@ import 'package:serial_csv/serial_csv.dart';
 import 'package:fast_csv/fast_csv.dart' as fast_csv;
 
 void main() {
-  benchmarkParseMap();
+  benchmarkParseDouble();
+}
+
+List<List> getTypedList() {
+  return List.generate(
+    1000,
+    (index) => [
+      ['ae5szjmz"nteje3wT', 'bwZshH!?dhdrj', 'cqwe332tjszzkt2L'],
+      [13143, 2.43, '-33'],
+      [-4, null, true],
+      [null, null, null],
+      [false, true, false],
+    ],
+  ).expand((element) => element).toList();
+}
+
+List<List<String>> getStringList() {
+  return getTypedList().map((e) => e.map((e) => e.toString()).toList()).toList();
+}
+
+List<List<int>> getIntList() {
+  final random = Random();
+  return List.generate(
+    1000,
+    (index) => List.generate(
+      3,
+      (index) => random.nextInt(1000) - 500,
+    ),
+  );
+}
+
+List<List<double>> getDoubleList() {
+  final random = Random();
+  return List.generate(
+    1000,
+    (index) => List.generate(
+      3,
+      (index) => random.nextDouble() * 1000 - 500.0,
+    ),
+  );
+}
+
+Map<String, dynamic> getMap() {
+  return Map<String, dynamic>.fromEntries(List.generate(2000, (index) {
+    final String key = 'k$index.hashCode'.hashCode.toRadixString(16);
+    final dynamic value;
+    switch (index % 6) {
+      case 0:
+        value = index.hashCode;
+        break;
+      case 1:
+        value = index.hashCode.toRadixString(16);
+        break;
+      case 2:
+        value = index.hashCode / 2;
+        break;
+      case 3:
+        value = index.hashCode % 2 == 0;
+        break;
+      default:
+        value = null;
+        break;
+    }
+    return MapEntry(key, value);
+  }));
 }
 
 void benchmarkParseTyped() {
-  const segment = '"ae5szjmznteje3wT","bwZshH!?dhdrj","cqwe332tjszzkt2L"\n13143,2.43,"-33"\n-4,,true\n';
-  final input = List<String>.generate(1000, (index) => segment).join('');
-  const iterations = 2000;
-
-  _benchmark(
-    name: 'heat-up',
-    iterations: iterations,
-    func: () => fast_csv.parse(input),
-  );
-
-  _benchmark(
-    name: 'SerialCsv.decode',
-    iterations: iterations,
-    func: () => SerialCsv.decode(input),
-  );
-
-  _benchmark(
-    name: 'fast_csv',
-    iterations: iterations,
-    func: () => fast_csv.parse(input),
-  );
-
-  _benchmark(
-    name: 'CsvToListConverter.convert',
-    iterations: iterations,
-    func: () => const CsvToListConverter(eol: '\n').convert(input),
-  );
-
-  final encodedJson = jsonEncode(input);
-  _benchmark(
-    name: 'jsonDecode',
-    iterations: iterations,
-    func: () => jsonEncode(encodedJson),
-  );
-}
-
-void benchmarkParseStrings() {
-  const segment = '"awt4Gw5hbwggTVBD4WWAVdds15","5hweh?!","feWg--adw!"\n"eee;;;www2","234rw","wgr5"\n"wss","nnnn","=?!wttTD"\n';
-  final input = List<String>.generate(1000, (index) => segment).join('');
-  const iterations = 2000;
-
-  _benchmark(
-    name: 'heat-up',
-    iterations: iterations,
-    func: () => fast_csv.parse(input),
-  );
-
-  _benchmark(
-    name: 'SerialCsv.decode',
-    iterations: iterations,
-    func: () => SerialCsv.decode(input),
-  );
-
-  _benchmark(
-    name: 'SerialCsv.decodeStringList',
-    iterations: iterations,
-    func: () => SerialCsv.decodeStringList(input),
-  );
-
-  _benchmark(
-    name: 'fast_csv',
-    iterations: iterations,
-    func: () => fast_csv.parse(input),
-  );
-
-  _benchmark(
-    name: 'CsvToListConverter.convert',
-    iterations: iterations,
-    func: () => const CsvToListConverter(eol: '\n').convert(input),
-  );
-}
-
-void benchmarkParseMap() {
-  final map = Map<String, dynamic>.fromEntries(List.generate(2000, (index) {
-    return MapEntry('k$index.hashCode'.hashCode.toRadixString(16), index % 2 == 0 ? index.hashCode.toRadixString(16) : index.hashCode);
-  }));
-  map['awt4Gw5hbwggTVBD4WWAVdds15'] = '5hweh?!';
-  map['eee;;;www2'] = 5345223;
-  map['wss'] = true;
-  map['aegh98""3jri3'] = null;
-
-  final input = SerialCsv.encodeMap(map);
+  final inputStructured = getTypedList();
+  final inputCsv = SerialCsv.encode(inputStructured);
   const iterations = 2000;
 
   _heatup(
-    name: 'heat-up',
+    name: 'parse mixed types',
     iterations: iterations,
     functions: [
-      () => SerialCsv.decode(input),
-      () => SerialCsv.decodeMap(input),
-      () => fast_csv.parse(input),
-      () => jsonDecode(jsonEncode(map)),
+      () => SerialCsv.decode(inputCsv),
+      () => SerialCsv.decodeStrings(inputCsv),
+      () => fast_csv.parse(inputCsv),
+      () => const CsvToListConverter(eol: '\n').convert(inputCsv),
+      () => jsonDecode(jsonEncode(inputStructured)),
     ],
   );
 
   _benchmark(
     name: 'SerialCsv.decode',
     iterations: iterations,
-    func: () => SerialCsv.decode(input),
-  );
-
-  _benchmark(
-    name: 'SerialCsv.decodeMap',
-    iterations: iterations,
-    func: () => SerialCsv.decodeMap(input),
-  );
-
-  _benchmark(
-    name: 'SerialCsv.decodeMap selfmade',
-    iterations: iterations,
-    func: () {
-      final result = SerialCsv.decode(input);
-      return {
-        for (var i = 0; i < result.length; i++)
-          i: result[i],
-      };
-    },
+    func: () => SerialCsv.decode(inputCsv),
   );
 
   _benchmark(
     name: 'fast_csv',
     iterations: iterations,
-    func: () => fast_csv.parse(input),
+    func: () => fast_csv.parse(inputCsv),
   );
 
   _benchmark(
-    name: 'CsvToListConverter.convert',
+    name: 'csv',
     iterations: iterations,
-    func: () => const CsvToListConverter(eol: '\n').convert(input),
+    func: () => const CsvToListConverter(eol: '\n').convert(inputCsv),
+  );
+
+  final encoded = jsonEncode(inputStructured); // encode only once
+  _benchmark(
+    name: 'jsonDecode',
+    iterations: iterations,
+    func: () => jsonDecode(encoded),
+  );
+}
+
+void benchmarkParseStrings() {
+  final inputStructured = getStringList();
+  final inputCsv = SerialCsv.encode(inputStructured);
+  const iterations = 2000;
+
+  _heatup(
+    name: 'parse strings',
+    iterations: iterations,
+    functions: [
+      () => SerialCsv.decode(inputCsv),
+      () => SerialCsv.decodeStrings(inputCsv),
+      () => fast_csv.parse(inputCsv),
+      () => const CsvToListConverter(eol: '\n').convert(inputCsv),
+      () => jsonDecode(jsonEncode(inputStructured)),
+    ],
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decode',
+    iterations: iterations,
+    func: () => SerialCsv.decode(inputCsv),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decodeStrings',
+    iterations: iterations,
+    func: () => SerialCsv.decodeStrings(inputCsv),
+  );
+
+  _benchmark(
+    name: 'fast_csv',
+    iterations: iterations,
+    func: () => fast_csv.parse(inputCsv),
+  );
+
+  _benchmark(
+    name: 'csv',
+    iterations: iterations,
+    func: () => const CsvToListConverter(eol: '\n').convert(inputCsv),
+  );
+
+  final encoded = jsonEncode(inputStructured); // encode only once
+  _benchmark(
+    name: 'jsonDecode',
+    iterations: iterations,
+    func: () => jsonDecode(encoded),
+  );
+}
+
+void benchmarkParseInt() {
+  final inputStructured = getIntList();
+  final inputCsv = SerialCsv.encode(inputStructured);
+  const iterations = 2000;
+
+  _heatup(
+    name: 'parse ints',
+    iterations: iterations,
+    functions: [
+      () => SerialCsv.decode(inputCsv),
+      () => SerialCsv.decodeIntegers(inputCsv),
+      () => fast_csv.parse(inputCsv),
+      () => const CsvToListConverter(eol: '\n').convert(inputCsv),
+      () => jsonDecode(jsonEncode(inputStructured)),
+    ],
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decode',
+    iterations: iterations,
+    func: () => SerialCsv.decode(inputCsv).cast<List<int>>(),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decodeIntegers',
+    iterations: iterations,
+    func: () => SerialCsv.decodeIntegers(inputCsv),
+  );
+
+  _benchmark(
+    name: 'fast_csv',
+    iterations: iterations,
+    func: () => fast_csv.parse(inputCsv),
+  );
+
+  _benchmark(
+    name: 'csv',
+    iterations: iterations,
+    func: () => const CsvToListConverter(eol: '\n').convert(inputCsv),
+  );
+
+  final encoded = jsonEncode(inputStructured); // encode only once
+  _benchmark(
+    name: 'jsonDecode',
+    iterations: iterations,
+    func: () => jsonDecode(encoded),
+  );
+}
+
+void benchmarkParseDouble() {
+  final inputStructured = getDoubleList();
+  final inputCsv = SerialCsv.encode(inputStructured);
+  const iterations = 2000;
+
+  _heatup(
+    name: 'parse doubles',
+    iterations: iterations,
+    functions: [
+      () => SerialCsv.decode(inputCsv),
+      () => SerialCsv.decodeDoubles(inputCsv),
+      () => jsonDecode(jsonEncode(inputStructured)),
+    ],
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decode',
+    iterations: iterations,
+    func: () => SerialCsv.decode(inputCsv).cast<List<double>>(),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decodeDoubles',
+    iterations: iterations,
+    func: () => SerialCsv.decodeDoubles(inputCsv),
+  );
+
+  final encoded = jsonEncode(inputStructured); // encode only once
+  _benchmark(
+    name: 'jsonDecode',
+    iterations: iterations,
+    func: () => jsonDecode(encoded),
+  );
+}
+
+void benchmarkParseMap() {
+  final map = getMap();
+  final inputCsv = SerialCsv.encodeMap(map);
+  const iterations = 2000;
+
+  _heatup(
+    name: 'parseMap',
+    iterations: iterations,
+    functions: [
+      () => SerialCsv.decodeMap(inputCsv),
+      () => fast_csv.parse(inputCsv),
+      () => jsonDecode(jsonEncode(map)),
+    ],
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decodeMap',
+    iterations: iterations,
+    func: () => SerialCsv.decodeMap(inputCsv),
+  );
+
+  _benchmark(
+    name: 'SerialCsv.decode + map conversion',
+    iterations: iterations,
+    func: () {
+      final result = SerialCsv.decode(inputCsv);
+      return {
+        for (var i = 0; i < result.length; i++)
+          result[i][0]: result[i][1],
+      };
+    },
+  );
+
+  _benchmark(
+    name: 'fast_csv (rows representation)',
+    iterations: iterations,
+    func: () => fast_csv.parse(inputCsv),
+  );
+
+  _benchmark(
+    name: 'csv (rows representation)',
+    iterations: iterations,
+    func: () => const CsvToListConverter(eol: '\n').convert(inputCsv),
   );
 
   final encodedJson = jsonEncode(map);
@@ -150,14 +304,16 @@ void benchmarkParseMap() {
 }
 
 void benchmarkEncode() {
+  final input = getTypedList();
   const iterations = 2000;
-  const row = ['rtdh56e6ew253', 'b32r21!424', 'cerges!!"r', 234, true];
-  final input = List.generate(1000, (_) => row);
 
-  _benchmark(
-    name: 'heat-up',
+  _heatup(
+    name: 'encode mixed types',
     iterations: iterations,
-    func: () => const ListToCsvConverter().convert(input),
+    functions: [
+      () => SerialCsv.encode(input),
+      () => const ListToCsvConverter().convert(input),
+    ],
   );
 
   _benchmark(
@@ -193,20 +349,22 @@ void benchmarkEncode() {
 }
 
 void benchmarkEncodeStrings() {
+  final input = getStringList();
   const iterations = 2000;
-  const row = ['rtdh56e6ew253', 'b32r21!424', 'cerges!!"r', '234', 'true'];
-  final input = List.generate(1000, (_) => row);
 
-  _benchmark(
-    name: 'heat-up',
+  _heatup(
+    name: 'encode strings',
     iterations: iterations,
-    func: () => const ListToCsvConverter().convert(input),
+    functions: [
+      () => SerialCsv.encodeStrings(input),
+      () => const ListToCsvConverter().convert(input),
+    ],
   );
 
   _benchmark(
-    name: 'SerialCsv.encodeStringList',
+    name: 'SerialCsv.encodeStrings',
     iterations: iterations,
-    func: () => SerialCsv.encodeStringList(input),
+    func: () => SerialCsv.encodeStrings(input),
   );
 
   _benchmark(
@@ -230,26 +388,16 @@ void benchmarkEncodeStrings() {
 }
 
 void benchmarkEncodeMap() {
-  final map = Map<String, dynamic>.fromEntries(List.generate(2000, (index) {
-    return MapEntry('k$index.hashCode'.hashCode.toRadixString(16), index % 2 == 0 ? index.hashCode.toRadixString(16) : index.hashCode);
-  }));
-  map['awt4Gw5hbwggTVBD4WWAVdds15'] = '5hweh?!';
-  map['eee;;;www2'] = 5345223;
-  map['wss'] = true;
-  map['aegh98""3jri3'] = null;
-
+  final map = getMap();
   const iterations = 3000;
 
-  _benchmark(
-    name: 'heat-up (1/2)',
+  _heatup(
+    name: 'encode map',
     iterations: iterations,
-    func: () => SerialCsv.encodeMap(map),
-  );
-
-  _benchmark(
-    name: 'heat-up (2/2)',
-    iterations: iterations,
-    func: () => jsonEncode(map),
+    functions: [
+      () => SerialCsv.encodeMap(map),
+      () => jsonEncode(map),
+    ],
   );
 
   _benchmark(
@@ -272,7 +420,16 @@ void _benchmark<T>({
   bool printResult = false,
 }) {
   if (printResult) {
-    print(func());
+    final result = func();
+    if (result is List<List>) {
+      _printTypes2(result);
+    } else if (result is List) {
+      _printTypes(result);
+    } else {
+      print('Print result:');
+      print(result.runtimeType);
+      print(result);
+    }
     return;
   }
 
@@ -281,7 +438,7 @@ void _benchmark<T>({
     func();
   }
   stopwatch.stop();
-  print('$name: ${stopwatch.elapsedMilliseconds}ms');
+  print('[${stopwatch.elapsedMilliseconds.toString().padLeft(5)} ms] $name');
 }
 
 void _heatup<T>({
@@ -290,6 +447,8 @@ void _heatup<T>({
   required List<T Function()> functions,
   bool printResult = false,
 }) {
+  print('Starting heat-up for "$name" ...');
+
   if (printResult) {
     print(functions.first());
     return;
@@ -302,13 +461,26 @@ void _heatup<T>({
     }
   }
   stopwatch.stop();
-  print('$name: ${stopwatch.elapsedMilliseconds}ms');
+  print('[${stopwatch.elapsedMilliseconds.toString().padLeft(5)} ms] heat-up');
 }
 
-// void _printTypes(List<List<dynamic>> result) {
-//   for (int row = 0; row < result.length; row++) {
-//     for (int col = 0; col < result[row].length; col++) {
-//       print('decoded[$row][$col]: ${result[row][col]} (${result[row][col].runtimeType})');
-//     }
-//   }
-// }
+void _printTypes(List<dynamic> result) {
+  for (int i = 0; i < result.length; i++) {
+    final row = result[i];
+    if (row is List) {
+      for (int j = 0; j < row.length; j++) {
+        print('decoded[$i][$j]: ${row[j]} (${row[j].runtimeType})');
+      }
+    } else {
+      print('decoded[$i]: $row (${row.runtimeType})');
+    }
+  }
+}
+
+void _printTypes2(List<List<dynamic>> result) {
+  for (int row = 0; row < result.length; row++) {
+    for (int col = 0; col < result[row].length; col++) {
+      print('decoded[$row][$col]: ${result[row][col]} (${result[row][col].runtimeType})');
+    }
+  }
+}

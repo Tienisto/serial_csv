@@ -4,8 +4,8 @@ class SerialCsvEncoder {
   const SerialCsvEncoder();
 
   /// Encodes a list of rows into a csv string.
-  String encode(List<List<dynamic>> csv) {
-    for (final row in csv) {
+  String encode(List<List<dynamic>> data) {
+    for (final row in data) {
       for (int i = 0; i < row.length; i++) {
         _buffer.write(_encodeCell(row[i]));
 
@@ -31,8 +31,8 @@ class SerialCsvEncoder {
   }
 
   /// Encodes a list of rows into a csv string.
-  String encodeStringList(List<List<String>> csv) {
-    for (final row in csv) {
+  String encodeStrings(List<List<String>> data) {
+    for (final row in data) {
       for (int i = 0; i < row.length; i++) {
         _buffer.write('"');
         _buffer.write(row[i].replaceAll('"', '""'));
@@ -41,6 +41,24 @@ class SerialCsvEncoder {
           _buffer.write('",');
         } else {
           _buffer.write('"');
+        }
+      }
+      _buffer.write('\n');
+    }
+    final result = _buffer.toString();
+    _buffer.clear();
+    return result;
+  }
+
+  /// Encodes a list of rows into a csv string.
+  /// Suitable for integers, doubles, and booleans.
+  String encodeGeneric<T>(List<List<T>> data) {
+    for (final row in data) {
+      for (int i = 0; i < row.length; i++) {
+        _buffer.write(row[i].toString());
+
+        if (i != row.length - 1) {
+          _buffer.write(',');
         }
       }
       _buffer.write('\n');

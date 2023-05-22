@@ -3,14 +3,29 @@ import 'package:test/test.dart';
 
 void main() {
   group('SerialCsvDecoder.decode', () {
-    test('Should decode normally', () {
-      final result = SerialCsv.decode('''"a",,"c"
-1,2.3,true
-''');
+    test('Should decode single string', () {
+      final result = SerialCsv.decode('"a"\n');
 
       expect(result, [
-        ['a', null, 'c'],
-        [1, 2.3, true],
+        ['a'],
+      ]);
+    });
+
+    test('Should decode empty string', () {
+      final result = SerialCsv.decode('""\n');
+
+      expect(result, [
+        ['']
+      ]);
+    });
+
+    test('Should decode multiple empty strings', () {
+      final result = SerialCsv.decode('"","",""\n""\n""\n');
+
+      expect(result, [
+        ['', '', ''],
+        [''],
+        [''],
       ]);
     });
 
@@ -28,7 +43,7 @@ void main() {
     });
 
     test('Should decode with quotes', () {
-      final result = SerialCsv.decode('"a","b","""c"""a\n');
+      final result = SerialCsv.decode('"a","b","""c""a"\n');
 
       expect(result, [
         ['a', 'b', '"c"a'],
@@ -58,24 +73,40 @@ void main() {
         ['a', 'b', 'c𠀀d'],
       ]);
     });
-  });
 
-  group('SerialCsvDecoder.decodeStringList', () {
-    test('Should decode normally', () {
-      final result = SerialCsv.decodeStringList('''"a","b11","c"
-"ddd","ee","fff"
-"g","h","i"
+    test('Should decode (integration test)', () {
+      final result = SerialCsv.decode('''"a",,"c"
+1,2.3,true
+,,,
+-3.22
+"hello""world"
+false,4,""
+-2.3e-4
 ''');
 
       expect(result, [
-        ['a', 'b11', 'c'],
-        ['ddd', 'ee', 'fff'],
-        ['g', 'h', 'i'],
+        ['a', null, 'c'],
+        [1, 2.3, true],
+        [null, null, null, null],
+        [-3.22],
+        ['hello"world'],
+        [false, 4, ''],
+        [-2.3e-4],
+      ]);
+    });
+  });
+
+  group('SerialCsvDecoder.decodeStrings', () {
+    test('Should decode single string', () {
+      final result = SerialCsv.decodeStrings('"a"\n');
+
+      expect(result, [
+        ['a'],
       ]);
     });
 
     test('Should decode with quotes', () {
-      final result = SerialCsv.decodeStringList('"a","b","""c"""a\n');
+      final result = SerialCsv.decodeStrings('"a","b","""c""a"\n');
 
       expect(result, [
         ['a', 'b', '"c"a'],
@@ -83,7 +114,7 @@ void main() {
     });
 
     test('Should decode with commas', () {
-      final result = SerialCsv.decodeStringList('"a","b","c,d"\n');
+      final result = SerialCsv.decodeStrings('"a","b","c,d"\n');
 
       expect(result, [
         ['a', 'b', 'c,d'],
@@ -91,7 +122,7 @@ void main() {
     });
 
     test('Should decode with newlines', () {
-      final result = SerialCsv.decodeStringList('"a","b","c\nd"\n');
+      final result = SerialCsv.decodeStrings('"a","b","c\nd"\n');
 
       expect(result, [
         ['a', 'b', 'c\nd'],
@@ -99,10 +130,76 @@ void main() {
     });
 
     test('Should decode surrogate pairs', () {
-      final result = SerialCsv.decodeStringList('"a","b","c𠀀d"\n');
+      final result = SerialCsv.decodeStrings('"a","b","c𠀀d"\n');
 
       expect(result, [
         ['a', 'b', 'c𠀀d'],
+      ]);
+    });
+
+    test('Should decode (integration test)', () {
+      final result = SerialCsv.decodeStrings('''"a","b11","c"
+"ddd","ee","fff"
+"g","h","i"
+"hello""world"
+''');
+
+      expect(result, [
+        ['a', 'b11', 'c'],
+        ['ddd', 'ee', 'fff'],
+        ['g', 'h', 'i'],
+        ['hello"world'],
+      ]);
+    });
+  });
+
+  group('SerialCsvDecoder.decodeIntegers', () {
+    test('Integration test', () {
+      final result = SerialCsv.decodeIntegers('''123124,34634,234249
+3326,-345,3
+235,358,-44
+987
+''');
+
+      expect(result, [
+        [123124, 34634, 234249],
+        [3326, -345, 3],
+        [235, 358, -44],
+        [987],
+      ]);
+    });
+  });
+
+  group('SerialCsvDecoder.decodeDoubles', () {
+    test('Integration test', () {
+      final result = SerialCsv.decodeDoubles('''123124.234,34634.234,234249.234
+3326.234,-345.234,3.234
+235.234,358.234,-44.234
+987.234
+''');
+
+      expect(result, [
+        [123124.234, 34634.234, 234249.234],
+        [3326.234, -345.234, 3.234],
+        [235.234, 358.234, -44.234],
+        [987.234],
+      ]);
+    });
+  });
+
+  group('SerialCsvDecoder.decodeBooleans', () {
+    test('Integration test', () {
+      final result = SerialCsv.decodeBooleans('''true,false,true
+false,true,false
+true,true,false
+false
+''');
+
+      expect(result, [
+        [true, false, true],
+        [false, true, false],
+        [true, true, false],
+        [false],
       ]);
     });
   });
@@ -121,7 +218,8 @@ void main() {
 "b",2345
 "c",23.45
 "d",true
-"e",
+"e",false
+"f",
 ''');
 
       expect(result, {
@@ -129,7 +227,8 @@ void main() {
         'b': 2345,
         'c': 23.45,
         'd': true,
-        'e': null,
+        'e': false,
+        'f': null,
       });
       expect(result['b'], isA<int>());
       expect(result['c'], isA<double>());

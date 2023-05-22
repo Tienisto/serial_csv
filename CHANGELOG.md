@@ -1,3 +1,9 @@
+## 0.4.0
+
+- add specialized `encode` and `decode` methods for `int`, `double` and `bool`
+- rename `encodeStringList` and `decodeStringList` to `encodeStrings` and `decodeStrings`
+- significantly improve parsing performance
+
 ## 0.3.0
 
 - make dart constraints less strict (requires only dart 2.12+)

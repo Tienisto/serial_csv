@@ -4,25 +4,15 @@ const _asciiComma = 44; // ,
 const _asciiDot = 46; // .
 const _asciiT = 116; // t
 const _asciiF = 102; // f
-const _ascii0 = 48; // 0
-const _ascii1 = 49; // 1
-const _ascii2 = 50; // 2
-const _ascii3 = 51; // 3
-const _ascii4 = 52; // 4
-const _ascii5 = 53; // 5
-const _ascii6 = 54; // 6
-const _ascii7 = 55; // 7
-const _ascii8 = 56; // 8
-const _ascii9 = 57; // 9
 
-enum _DataType {
-  string,
-  integer,
-  double,
-  boolean,
-  nullValue,
-}
+const _trueLength = 4;
+const _falseLength = 5;
 
+/// Decoding algorithms to parse CSV to List or Map.
+///
+/// Optimizations should be made first in [decode] when possible
+/// because [decodeStrings], [decodeIntegers], [decodeDoubles], [decodeBooleans]
+/// are based on [decode] with unused code removed.
 class SerialCsvDecoder {
   const SerialCsvDecoder();
 
@@ -31,120 +21,118 @@ class SerialCsvDecoder {
     final bytes = data.codeUnits;
     final List<List<Object?>> parsedData = [];
 
-    List<Object?> currentRow = [];
-    _DataType currentType = _DataType.nullValue; // expect null if empty
-    bool boolValue = false;
-    bool inString = false;
-    List<int> currentCell = [];
+    int cursor = 0;
 
-    for (int i = 0; i < bytes.length; i++) {
-      int c = bytes[i];
+    row_loop:
+    while (cursor != bytes.length) {
+      // one iteration represents one row
 
-      switch (c) {
-        case _asciiQuote:
-          if (inString) {
-            if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
-              // Escaped quote
-              currentCell.add(_asciiQuote);
-              i++; // skip the second quote
-            } else {
-              // we are done with the string
-              // expecting a comma or line break next
-              inString = false;
-            }
-          } else {
-            // detect as string
-            currentType = _DataType.string;
-            inString = true;
-          }
-          break;
-        case _asciiComma:
-        case _asciiLineBreak:
-          if (inString) {
-            // we are still in the string
-            currentCell.add(c);
-          } else {
-            // end of cell or row
-            switch (currentType) {
-              case _DataType.string:
-                currentRow.add(String.fromCharCodes(currentCell));
-                break;
-              case _DataType.integer:
-                currentRow.add(int.parse(String.fromCharCodes(currentCell)));
-                break;
-              case _DataType.double:
-                currentRow.add(double.parse(String.fromCharCodes(currentCell)));
-                break;
-              case _DataType.boolean:
-                currentRow.add(boolValue);
-                break;
-              case _DataType.nullValue:
-                currentRow.add(null);
-                break;
-            }
+      List<Object?> currentRow = [];
 
-            // reset cell
-            currentCell = [];
-            inString = false;
-            currentType = _DataType.nullValue;
+      cell_loop:
+      while (true) {
+        // one iteration represents one cell
 
-            if (c == _asciiLineBreak) {
-              // end of the row
+        int initialChar = bytes[cursor];
+
+        if (currentRow.isNotEmpty) {
+          switch (initialChar) {
+            case _asciiComma:
+              // next cell
+              initialChar = bytes[++cursor];
+              break;
+            case _asciiLineBreak:
+              // end of row
               parsedData.add(currentRow);
+              cursor++;
+              continue row_loop;
+          }
+        }
 
-              // reset row
-              currentRow = [];
+        switch (initialChar) {
+          case _asciiQuote:
+            // detected string
+            cursor++; // skip first quote
+            int startString = cursor;
+            List<int> doubleQuotes = [];
+            while (true) {
+              int char = bytes[cursor];
+
+              if (char == _asciiQuote) {
+                if (cursor + 1 < bytes.length &&
+                    bytes[cursor + 1] == _asciiQuote) {
+                  doubleQuotes.add(cursor - startString);
+                  cursor += 2; // skip next quote
+                } else {
+                  // found end quote
+                  String value = data.substring(startString, cursor);
+                  for (final int doubleQuote in doubleQuotes.reversed) {
+                    value =
+                        value.replaceRange(doubleQuote, doubleQuote + 1, '');
+                  }
+                  currentRow.add(value);
+                  cursor++;
+                  continue cell_loop;
+                }
+              } else {
+                cursor++;
+              }
             }
-          }
-          break;
-        default:
-          switch (currentType) {
-            case _DataType.string:
-              currentCell.add(c);
-              break;
-            case _DataType.integer:
-              currentCell.add(c);
-              if (c == _asciiDot) {
-                // change to double
-                currentType = _DataType.double;
-              }
-              break;
-            case _DataType.double:
-              currentCell.add(c);
-              break;
-            case _DataType.boolean:
-              // we already detected the boolean value on the first character
-              break;
-            case _DataType.nullValue:
-              // no type detected yet
-              // detect type on first character
-              switch (c) {
-                case _asciiT:
-                case _asciiF:
-                  currentType = _DataType.boolean;
-                  boolValue = c == _asciiT; // we are finished with the boolean
-                  break;
-                case _ascii0:
-                case _ascii1:
-                case _ascii2:
-                case _ascii3:
-                case _ascii4:
-                case _ascii5:
-                case _ascii6:
-                case _ascii7:
-                case _ascii8:
-                case _ascii9:
-                  // assume as integer first, we change to double if we see a dot
-                  currentType = _DataType.integer;
-                  currentCell.add(c);
-                  break;
+          case _asciiT:
+          case _asciiF:
+            // detected boolean
+            final boolValue = initialChar == _asciiT;
+            currentRow.add(boolValue);
+
+            // skip until linebreak or comma
+            if (boolValue) {
+              cursor += _trueLength;
+            } else {
+              cursor += _falseLength;
+            }
+
+            continue cell_loop;
+          case _asciiComma:
+          case _asciiLineBreak:
+            // detected null value
+            currentRow.add(null);
+            continue cell_loop;
+          default:
+            // number expected
+            // assume as integer first, we change to double if we see a dot
+            int startString = cursor;
+
+            integer_loop:
+            while (true) {
+              int char = bytes[cursor];
+
+              switch (char) {
+                case _asciiComma:
+                case _asciiLineBreak:
+                  currentRow
+                      .add(int.parse(data.substring(startString, cursor)));
+                  continue cell_loop;
+                case _asciiDot:
+                  cursor++;
+                  break integer_loop;
                 default:
-                  currentType = _DataType.string;
-                  currentCell.add(c);
-                  break;
+                  cursor++;
               }
-              break;
-          }
+            }
+
+            // double_loop
+            while (true) {
+              int char = bytes[cursor];
+
+              if (char == _asciiComma || char == _asciiLineBreak) {
+                currentRow
+                    .add(double.parse(data.substring(startString, cursor)));
+                continue cell_loop;
+              }
+
+              cursor++;
+            }
+        }
       }
     }
 
@@ -152,57 +140,206 @@ class SerialCsvDecoder {
   }
 
   /// Decodes a CSV string into a list of rows (specialized for strings).
-  List<List<String>> decodeStringList(String data) {
+  List<List<String>> decodeStrings(String data) {
     final bytes = data.codeUnits;
     final List<List<String>> parsedData = [];
 
-    List<String> currentRow = [];
-    bool inString = false;
-    List<int> currentCell = [];
+    int cursor = 0;
 
-    for (int i = 0; i < bytes.length; i++) {
-      int c = bytes[i];
+    row_loop:
+    while (cursor != bytes.length) {
+      // one iteration represents one row
 
-      switch (c) {
-        case _asciiQuote:
-          if (inString) {
-            if (i + 1 < bytes.length && bytes[i + 1] == _asciiQuote) {
-              // Escaped quote
-              currentCell.add(_asciiQuote);
-              i++; // skip the second quote
-            } else {
-              // we are done with the string
-              // expecting a comma or line break next
-              inString = false;
-            }
-          } else {
-            inString = true;
-          }
-          break;
-        case _asciiComma:
-        case _asciiLineBreak:
-          if (inString) {
-            // we are still in the string
-            currentCell.add(c);
-          } else {
-            // end of cell or row
-            currentRow.add(String.fromCharCodes(currentCell));
+      List<String> currentRow = [];
 
-            // reset cell
-            currentCell = [];
-            inString = false;
+      cell_loop:
+      while (true) {
+        // one iteration represents one cell
 
-            if (c == _asciiLineBreak) {
-              // end of the row
+        int initialChar = bytes[cursor];
+
+        if (currentRow.isNotEmpty) {
+          switch (initialChar) {
+            case _asciiComma:
+              // next cell
+              initialChar = bytes[++cursor];
+              break;
+            case _asciiLineBreak:
+              // end of row
               parsedData.add(currentRow);
-
-              // reset row
-              currentRow = [];
-            }
+              cursor++;
+              continue row_loop;
           }
-          break;
-        default:
-          currentCell.add(c);
+        }
+
+        cursor++; // skip first quote
+        int startString = cursor;
+        List<int> doubleQuotes = [];
+        while (true) {
+          int char = bytes[cursor];
+
+          if (char == _asciiQuote) {
+            if (cursor + 1 < bytes.length && bytes[cursor + 1] == _asciiQuote) {
+              doubleQuotes.add(cursor - startString);
+              cursor += 2; // skip next quote
+            } else {
+              // found end quote
+              String value = data.substring(startString, cursor);
+              for (final int doubleQuote in doubleQuotes.reversed) {
+                value = value.replaceRange(doubleQuote, doubleQuote + 1, '');
+              }
+              currentRow.add(value);
+              cursor++;
+              continue cell_loop;
+            }
+          } else {
+            cursor++;
+          }
+        }
+      }
+    }
+
+    return parsedData;
+  }
+
+  List<List<int>> decodeIntegers(String data) {
+    final bytes = data.codeUnits;
+    final List<List<int>> parsedData = [];
+
+    int cursor = 0;
+
+    row_loop:
+    while (cursor != bytes.length) {
+      // one iteration represents one row
+
+      List<int> currentRow = [];
+
+      cell_loop:
+      while (true) {
+        // one iteration represents one cell
+
+        int initialChar = bytes[cursor];
+
+        if (currentRow.isNotEmpty) {
+          switch (initialChar) {
+            case _asciiComma:
+              // next cell
+              initialChar = bytes[++cursor];
+              break;
+            case _asciiLineBreak:
+              // end of row
+              parsedData.add(currentRow);
+              cursor++;
+              continue row_loop;
+          }
+        }
+
+        int startString = cursor;
+
+        while (true) {
+          int char = bytes[cursor];
+
+          switch (char) {
+            case _asciiComma:
+            case _asciiLineBreak:
+              currentRow.add(int.parse(data.substring(startString, cursor)));
+              continue cell_loop;
+            default:
+              cursor++;
+          }
+        }
+      }
+    }
+
+    return parsedData;
+  }
+
+  List<List<double>> decodeDoubles(String data) {
+    final bytes = data.codeUnits;
+    final List<List<double>> parsedData = [];
+
+    int cursor = 0;
+
+    row_loop:
+    while (cursor != bytes.length) {
+      // one iteration represents one row
+
+      List<double> currentRow = [];
+
+      cell_loop:
+      while (true) {
+        // one iteration represents one cell
+
+        int startString = cursor;
+
+        while (true) {
+          int char = bytes[cursor];
+
+          if (char == _asciiComma) {
+            currentRow.add(double.parse(data.substring(startString, cursor)));
+            cursor++;
+            continue cell_loop;
+          }
+
+          if (char == _asciiLineBreak) {
+            currentRow.add(double.parse(data.substring(startString, cursor)));
+            // end of row
+            parsedData.add(currentRow);
+            cursor++;
+            continue row_loop;
+          }
+
+          cursor++;
+        }
+      }
+    }
+
+    return parsedData;
+  }
+
+  List<List<bool>> decodeBooleans(String data) {
+    final bytes = data.codeUnits;
+    final List<List<bool>> parsedData = [];
+
+    int cursor = 0;
+
+    row_loop:
+    while (cursor != bytes.length) {
+      // one iteration represents one row
+
+      List<bool> currentRow = [];
+
+      cell_loop:
+      while (true) {
+        // one iteration represents one cell
+
+        int initialChar = bytes[cursor];
+
+        if (currentRow.isNotEmpty) {
+          switch (initialChar) {
+            case _asciiComma:
+              // next cell
+              initialChar = bytes[++cursor];
+              break;
+            case _asciiLineBreak:
+              // end of row
+              parsedData.add(currentRow);
+              cursor++;
+              continue row_loop;
+          }
+        }
+
+        final boolValue = initialChar == _asciiT;
+        currentRow.add(boolValue);
+
+        // skip until linebreak or comma
+        if (boolValue) {
+          cursor += _trueLength;
+        } else {
+          cursor += _falseLength;
+        }
+
+        continue cell_loop;
       }
     }
 
@@ -218,7 +355,7 @@ class SerialCsvDecoder {
 
     row_loop:
     while (cursor != bytes.length) {
-      // one iteration = one row
+      // one iteration represents one row
 
       String currentKey = '';
 
@@ -282,16 +419,17 @@ class SerialCsvDecoder {
         case _asciiT:
         case _asciiF:
           // detected boolean
-          parsedData[currentKey] = initialChar == _asciiT;
+          final boolValue = initialChar == _asciiT;
+          parsedData[currentKey] = boolValue;
 
           // skip until linebreak
-          while (true) {
-            cursor++;
-            if (bytes[cursor] == _asciiLineBreak) {
-              cursor++;
-              continue row_loop;
-            }
+          if (boolValue) {
+            cursor += _trueLength;
+          } else {
+            cursor += _falseLength;
           }
+          cursor++; // skip line break
+          continue row_loop;
         case _asciiLineBreak:
           // detected null value
           parsedData[currentKey] = null;

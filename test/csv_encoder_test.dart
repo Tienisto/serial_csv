@@ -46,9 +46,9 @@ void main() {
     });
   });
 
-  group('SerialCsv.encodeStringList', () {
+  group('SerialCsv.encodeStrings', () {
     test('Should encode normally', () {
-      final result = SerialCsv.encodeStringList([
+      final result = SerialCsv.encodeStrings([
         ['a', 'b', 'c'],
         ['1', '2', '3'],
       ]);
@@ -57,7 +57,7 @@ void main() {
     });
 
     test('Should encode with quotes', () {
-      final result = SerialCsv.encodeStringList([
+      final result = SerialCsv.encodeStrings([
         ['a', 'b', '"c"'],
       ]);
 
@@ -65,7 +65,7 @@ void main() {
     });
 
     test('Should encode with newlines', () {
-      final result = SerialCsv.encodeStringList([
+      final result = SerialCsv.encodeStrings([
         ['a', 'b', 'c\nd'],
       ]);
 
@@ -84,6 +84,41 @@ void main() {
       });
 
       expect(result, '"a","1"\n"b",2\n"c",true\n"d",\n"e","hello""world"\n');
+    });
+  });
+
+  group('SerialCsv.encodeGeneric', () {
+    test('Integer integration test', () {
+      final result = SerialCsv.encodeIntegers([
+        [1, 2, 3],
+        [],
+        [-4, 0],
+        [1000]
+      ]);
+
+      expect(result, '1,2,3\n\n-4,0\n1000\n');
+    });
+
+    test('Double integration test', () {
+      final result = SerialCsv.encodeDoubles([
+        [1.0, 2.0, 3.0],
+        [],
+        [-4.0, 0.0],
+        [1000.0]
+      ]);
+
+      expect(result, '1.0,2.0,3.0\n\n-4.0,0.0\n1000.0\n');
+    });
+
+    test('Boolean integration test', () {
+      final result = SerialCsv.encodeBooleans([
+        [true, false, true],
+        [],
+        [false, true],
+        [true]
+      ]);
+
+      expect(result, 'true,false,true\n\nfalse,true\ntrue\n');
     });
   });
 }
