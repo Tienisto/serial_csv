@@ -42,7 +42,7 @@ class SerialCsv {
 
   /// A specialized version of decode that returns a list of rows of strings.
   static List<List<String>> decodeStrings(String csv) {
-    return const SerialCsvDecoder().decodeStrings(csv);
+    return const SerialCsvDecoder().decode(csv).cast();
   }
 
   /// A specialized version of decode that returns a list of rows of integers.
