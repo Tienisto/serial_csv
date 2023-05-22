@@ -11,7 +11,7 @@ const _falseLength = 5;
 /// Decoding algorithms to parse CSV to List or Map.
 ///
 /// Optimizations should be made first in [decode] when possible
-/// because [decodeIntegers], [decodeDoubles], [decodeBooleans]
+/// because [decodeStrings], [decodeIntegers], [decodeDoubles], [decodeBooleans]
 /// are based on [decode] with unused code removed.
 class SerialCsvDecoder {
   const SerialCsvDecoder();
@@ -132,6 +132,69 @@ class SerialCsvDecoder {
 
               cursor++;
             }
+        }
+      }
+    }
+
+    return parsedData;
+  }
+
+  /// Decodes a CSV string into a list of rows (specialized for strings).
+  List<List<String>> decodeStrings(String data) {
+    final bytes = data.codeUnits;
+    final List<List<String>> parsedData = [];
+
+    int cursor = 0;
+
+    row_loop:
+    while (cursor != bytes.length) {
+      // one iteration represents one row
+
+      List<String> currentRow = [];
+
+      cell_loop:
+      while (true) {
+        // one iteration represents one cell
+
+        int initialChar = bytes[cursor];
+
+        if (currentRow.isNotEmpty) {
+          switch (initialChar) {
+            case _asciiComma:
+              // next cell
+              initialChar = bytes[++cursor];
+              break;
+            case _asciiLineBreak:
+              // end of row
+              parsedData.add(currentRow);
+              cursor++;
+              continue row_loop;
+          }
+        }
+
+        cursor++; // skip first quote
+        int startString = cursor;
+        List<int> doubleQuotes = [];
+        while (true) {
+          int char = bytes[cursor];
+
+          if (char == _asciiQuote) {
+            if (cursor + 1 < bytes.length && bytes[cursor + 1] == _asciiQuote) {
+              doubleQuotes.add(cursor - startString);
+              cursor += 2; // skip next quote
+            } else {
+              // found end quote
+              String value = data.substring(startString, cursor);
+              for (final int doubleQuote in doubleQuotes.reversed) {
+                value = value.replaceRange(doubleQuote, doubleQuote + 1, '');
+              }
+              currentRow.add(value);
+              cursor++;
+              continue cell_loop;
+            }
+          } else {
+            cursor++;
+          }
         }
       }
     }
