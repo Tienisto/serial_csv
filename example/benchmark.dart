@@ -145,7 +145,7 @@ void benchmarkParseStrings() {
   _benchmark(
     name: 'SerialCsv.decode',
     iterations: iterations,
-    func: () => SerialCsv.decode(inputCsv).cast<List<String>>(),
+    func: () => SerialCsv.decode(inputCsv),
   );
 
   _benchmark(
