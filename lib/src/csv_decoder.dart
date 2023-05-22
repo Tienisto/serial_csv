@@ -223,21 +223,25 @@ class SerialCsvDecoder {
       String currentKey = '';
 
       // parse first column
-      List<int> currentCell = [];
       cursor++; // skip first quote
+      int startString = cursor;
+      List<int> doubleQuotes = [];
       while (true) {
         int char = bytes[cursor];
 
         if (char == _asciiQuote) {
           if (cursor + 1 < bytes.length && bytes[cursor + 1] == _asciiQuote) {
-            currentCell.add(_asciiQuote);
+            doubleQuotes.add(cursor - startString);
             cursor += 2; // skip next quote
           } else {
-            currentKey = String.fromCharCodes(currentCell);
+            String value = data.substring(startString, cursor);
+            for (final int doubleQuote in doubleQuotes.reversed) {
+              value = value.replaceRange(doubleQuote, doubleQuote + 1, '');
+            }
+            currentKey = value;
             break; // found end quote
           }
         } else {
-          currentCell.add(char);
           cursor++;
         }
       }
@@ -250,23 +254,28 @@ class SerialCsvDecoder {
       switch (initialChar) {
         case _asciiQuote:
           // detected string
-          currentCell = [];
           cursor++; // skip first quote
+          startString = cursor;
+          doubleQuotes = [];
           while (true) {
             int char = bytes[cursor];
 
             if (char == _asciiQuote) {
-              if (cursor + 1 < bytes.length && bytes[cursor + 1] == _asciiQuote) {
-                currentCell.add(_asciiQuote);
+              if (cursor + 1 < bytes.length &&
+                  bytes[cursor + 1] == _asciiQuote) {
+                doubleQuotes.add(cursor - startString);
                 cursor += 2; // skip next quote
               } else {
                 // found end quote
-                parsedData[currentKey] = String.fromCharCodes(currentCell);
+                String value = data.substring(startString, cursor);
+                for (final int doubleQuote in doubleQuotes.reversed) {
+                  value = value.replaceRange(doubleQuote, doubleQuote + 1, '');
+                }
+                parsedData[currentKey] = value;
                 cursor += 2; // skip next line break
                 continue row_loop;
               }
             } else {
-              currentCell.add(char);
               cursor++;
             }
           }
@@ -291,7 +300,7 @@ class SerialCsvDecoder {
         default:
           // number expected
           // assume as integer first, we change to double if we see a dot
-          currentCell = [];
+          startString = cursor;
 
           integer_loop:
           while (true) {
@@ -299,16 +308,15 @@ class SerialCsvDecoder {
 
             switch (char) {
               case _asciiLineBreak:
-                parsedData[currentKey] = int.parse(String.fromCharCodes(currentCell));
+                parsedData[currentKey] =
+                    int.parse(data.substring(startString, cursor));
                 cursor++;
                 continue row_loop;
               case _asciiDot:
-                currentCell.add(char);
                 cursor++;
                 break integer_loop;
               default:
                 cursor++;
-                currentCell.add(char);
             }
           }
 
@@ -317,12 +325,12 @@ class SerialCsvDecoder {
             int char = bytes[cursor];
 
             if (char == _asciiLineBreak) {
-              parsedData[currentKey] = double.parse(String.fromCharCodes(currentCell));
+              parsedData[currentKey] =
+                  double.parse(data.substring(startString, cursor));
               cursor++;
               continue row_loop;
             }
 
-            currentCell.add(char);
             cursor++;
           }
       }

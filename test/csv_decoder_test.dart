@@ -118,16 +118,16 @@ void main() {
 
     test('Should decode normally', () {
       final result = SerialCsv.decodeMap('''"a","aa"
-"b",2
-"c",3.4
+"b",2345
+"c",23.45
 "d",true
 "e",
 ''');
 
       expect(result, {
         'a': 'aa',
-        'b': 2,
-        'c': 3.4,
+        'b': 2345,
+        'c': 23.45,
         'd': true,
         'e': null,
       });
@@ -145,10 +145,11 @@ void main() {
     });
 
     test('Should decode with quotes', () {
-      final result = SerialCsv.decodeMap('"a","""b"""\n');
+      final result = SerialCsv.decodeMap('"a","""b"""\n"""c""","d"\n');
 
       expect(result, {
         'a': '"b"',
+        '"c"': 'd',
       });
     });
 

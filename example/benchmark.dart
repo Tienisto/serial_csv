@@ -6,7 +6,7 @@ import 'package:serial_csv/serial_csv.dart';
 import 'package:fast_csv/fast_csv.dart' as fast_csv;
 
 void main() {
-  benchmarkParseStrings();
+  benchmarkParseMap();
 }
 
 void benchmarkParseTyped() {
@@ -83,7 +83,7 @@ void benchmarkParseStrings() {
 }
 
 void benchmarkParseMap() {
-  final map = Map<String, dynamic>.fromEntries(List.generate(1000, (index) {
+  final map = Map<String, dynamic>.fromEntries(List.generate(2000, (index) {
     return MapEntry('k$index.hashCode'.hashCode.toRadixString(16), index % 2 == 0 ? index.hashCode.toRadixString(16) : index.hashCode);
   }));
   map['awt4Gw5hbwggTVBD4WWAVdds15'] = '5hweh?!';
@@ -94,10 +94,15 @@ void benchmarkParseMap() {
   final input = SerialCsv.encodeMap(map);
   const iterations = 2000;
 
-  _benchmark(
+  _heatup(
     name: 'heat-up',
     iterations: iterations,
-    func: () => fast_csv.parse(input),
+    functions: [
+      () => SerialCsv.decode(input),
+      () => SerialCsv.decodeMap(input),
+      () => fast_csv.parse(input),
+      () => jsonDecode(jsonEncode(map)),
+    ],
   );
 
   _benchmark(
@@ -274,6 +279,27 @@ void _benchmark<T>({
   final stopwatch = Stopwatch()..start();
   for (int i = 0; i < iterations; i++) {
     func();
+  }
+  stopwatch.stop();
+  print('$name: ${stopwatch.elapsedMilliseconds}ms');
+}
+
+void _heatup<T>({
+  required String name,
+  required int iterations,
+  required List<T Function()> functions,
+  bool printResult = false,
+}) {
+  if (printResult) {
+    print(functions.first());
+    return;
+  }
+
+  final stopwatch = Stopwatch()..start();
+  for (final fun in functions) {
+    for (int i = 0; i < iterations; i++) {
+      fun();
+    }
   }
   stopwatch.stop();
   print('$name: ${stopwatch.elapsedMilliseconds}ms');
