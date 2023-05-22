@@ -26,6 +26,8 @@ and [csvwriter](https://pub.dev/packages/csvwriter) (v1.3.0) were used.
 
 ![benchmark](https://raw.githubusercontent.com/Tienisto/serial_csv/main/assets/benchmark.png)
 
+\* `jsonEncode` and `jsonDecode` are using an equivalent data representation.
+
 You can run the benchmark yourself with this [code example](https://github.com/Tienisto/serial_csv/blob/main/example/benchmark.dart).
 
 ## CSV structure

@@ -7,24 +7,33 @@ import 'package:serial_csv/serial_csv.dart';
 import 'package:fast_csv/fast_csv.dart' as fast_csv;
 
 void main() {
-  benchmarkParseDouble();
+  benchmarkParseStrings();
 }
 
 List<List> getTypedList() {
   return List.generate(
     1000,
     (index) => [
-      ['ae5szjmz"nteje3wT', 'bwZshH!?dhdrj', 'cqwe332tjszzkt2L'],
-      [13143, 2.43, '-33'],
+      ['ae5szjmz"nteje3wT', 'bwZshH!?dhdrj', '${'ka$index'.hashCode.toRadixString(16)}!'],
+      [index.hashCode, 2.43, '-33'],
       [-4, null, true],
       [null, null, null],
-      [false, true, false],
+      [false, index % 2 == 0, false],
     ],
   ).expand((element) => element).toList();
 }
 
 List<List<String>> getStringList() {
-  return getTypedList().map((e) => e.map((e) => e.toString()).toList()).toList();
+  return List.generate(
+    1000,
+    (index) => [
+      ['ae5szjmz"nteje3wT', 'bwZshH!?dhdrj', '${'ka$index'.hashCode.toRadixString(16)}!'],
+      ['aefew4t9z438"goGHUIHUIrqwe', 'RJ%U§)(u35wfesqqq', 'DEOFAFSAVka2411$index bb'],
+      ['oas8fc9FU()AÖPPfa3JJKL§"" ', 'öwpod9elKKS${'gg$index'.hashCode}', '12312413432'],
+      ['rODEO§)FLlFAQ!!!!&&&&', 'LLFWOPOSAPKOPWFF', 'aldsi9OP§FLSDNFKLew3332'],
+      ['fsdfeoi${'aaa$index'.hashCode}---', 'owejftiw04380', 'pfojw0t9j03ow4pzjg9psw548gjw54'],
+    ],
+  ).expand((element) => element).toList();
 }
 
 List<List<int>> getIntList() {
@@ -84,7 +93,6 @@ void benchmarkParseTyped() {
     iterations: iterations,
     functions: [
       () => SerialCsv.decode(inputCsv),
-      () => SerialCsv.decodeStrings(inputCsv),
       () => fast_csv.parse(inputCsv),
       () => const CsvToListConverter(eol: '\n').convert(inputCsv),
       () => jsonDecode(jsonEncode(inputStructured)),
@@ -137,7 +145,7 @@ void benchmarkParseStrings() {
   _benchmark(
     name: 'SerialCsv.decode',
     iterations: iterations,
-    func: () => SerialCsv.decode(inputCsv),
+    func: () => SerialCsv.decode(inputCsv).cast<List<String>>(),
   );
 
   _benchmark(
@@ -277,8 +285,7 @@ void benchmarkParseMap() {
     func: () {
       final result = SerialCsv.decode(inputCsv);
       return {
-        for (var i = 0; i < result.length; i++)
-          result[i][0]: result[i][1],
+        for (var i = 0; i < result.length; i++) result[i][0]: result[i][1],
       };
     },
   );
@@ -313,6 +320,7 @@ void benchmarkEncode() {
     functions: [
       () => SerialCsv.encode(input),
       () => const ListToCsvConverter().convert(input),
+      () => jsonEncode(input),
     ],
   );
 
@@ -336,7 +344,7 @@ void benchmarkEncode() {
   );
 
   _benchmark(
-    name: 'ListToCsvConverter.convert',
+    name: 'csv',
     iterations: iterations,
     func: () => const ListToCsvConverter().convert(input),
   );
@@ -381,7 +389,13 @@ void benchmarkEncodeStrings() {
   );
 
   _benchmark(
-    name: 'ListToCsvConverter.convert',
+    name: 'jsonEncode',
+    iterations: iterations,
+    func: () => jsonEncode(input),
+  );
+
+  _benchmark(
+    name: 'csv',
     iterations: iterations,
     func: () => const ListToCsvConverter().convert(input),
   );
